@@ -1,94 +1,73 @@
-import org.junit.After;
-import org.junit.Before;
+import org.junit.Assert;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.util.Arrays;
+import java.util.UUID;
 
 public class SuffixArrayTest {
 
-    @Before
-    public void setUp() throws Exception {
-    }
-
-    @After
-    public void tearDown() throws Exception {
-    }
-
     @Test
-    public void testConstruct() {
-        new SuffixArray();
-    }
-
-    @Test
-    public void testSuffixArray() {
-        String str = "AABBBCCDD";
-        int[] sa = new int[str.length()];
-        int[] lcp = new int[str.length()];
-        SuffixArray.createSuffixArray(str, sa, lcp);
-        int[] sa2 = new int[str.length()];
-        int[] lcp2 = new int[str.length()];
-        SuffixArray2.createSuffixArray(str, sa2, lcp2);
-        assertArrayEquals(sa2, sa);
-        assertArrayEquals(lcp2, lcp);
-    }
-
-    @Test
-    public void testSuffixArraySlow() {
-        String str = "N&Yn48rnN&*$Y";
-        int[] sa = new int[str.length()];
-        int[] lcp = new int[str.length()];
-        SuffixArray.createSuffixArraySlow(str, sa, lcp);
-        SuffixArray.printV(sa, "sa");
-        int[] sa2 = new int[str.length()];
-        int[] lcp2 = new int[str.length()];
-        SuffixArray2.createSuffixArray(str, sa2, lcp2);
-        assertArrayEquals(sa2, sa);
-        assertArrayEquals(lcp2, lcp);
-    }
-
-    @Test
-    public void testSuffixArraySlowIllegal() {
-        String str = "N&Yn48rnN&*$Y";
-        int[] sa = new int[str.length() + 1];
-        int[] lcp = new int[str.length() + 1];
-        try {
-            SuffixArray.createSuffixArraySlow(str, sa, lcp);
-            fail();
-        } catch (IllegalArgumentException e) {
+    public void test() {
+        for (int i = 0; i < 10000; i++) {
+            String s = UUID.randomUUID().toString();
+            int[] sa = new int[s.length()];
+            int[] lcp = new int[s.length()];
+            int[] sa2 = new int[s.length()];
+            int[] lcp2 = new int[s.length()];
+            SuffixArray.createSuffixArray(s, sa, lcp);
+            SuffixArray2.createSuffixArray(s, sa2, lcp2);
+            Assert.assertArrayEquals(sa2, sa);
+            Assert.assertArrayEquals(lcp2, lcp);
+            SuffixArray.createSuffixArraySlow(s, sa, lcp);
+            SuffixArray2.createSuffixArraySlow(s, sa2, lcp2);
+            Assert.assertArrayEquals(sa2, sa);
+            Assert.assertArrayEquals(lcp2, lcp);
+            try {
+                SuffixArray.createSuffixArraySlow(s, new int[0], lcp);
+                Assert.fail();
+            } catch (Exception ignored) {
+            }
+            try {
+                SuffixArray.createSuffixArraySlow(s, sa, new int[0]);
+                Assert.fail();
+            } catch (Exception ignored) {
+            }
+            Assert.assertTrue(SuffixArray.isPermutation(sa, sa.length) == SuffixArray2.isPermutation(sa, sa.length));
+            Assert.assertFalse(SuffixArray.isPermutation(new int[]{0, 0}, 2));
         }
-        sa = new int[str.length()];
+
         try {
-            SuffixArray.createSuffixArraySlow(str, sa, lcp);
-            fail();
-        } catch (IllegalArgumentException e) {
+            Assert.assertTrue(SuffixArray.sleq(new int[]{1, 2, 3}, 0, new int[]{1, 2, 3}, 0));
+            Assert.fail();
+        } catch (Exception ignored) {
         }
+        Assert.assertTrue(SuffixArray.sleq(new int[]{1, 2, 3}, 0, new int[]{1, 3, 3}, 0));
+        Assert.assertFalse(SuffixArray.sleq(new int[]{1, 2, 3}, 0, new int[]{1, 1, 3}, 0));
+        Assert.assertTrue(SuffixArray.isSorted(new int[]{0, 1, 2}, new int[]{1, 2, 3}, 3));
+        Assert.assertFalse(SuffixArray.isSorted(new int[]{0, 1, 2}, new int[]{3, 2, 1}, 3));
     }
 
     @Test
-    public void testPermutation() {
-        assertTrue(SuffixArray.isPermutation(new int[]{0, 1, 2, 3, 4, 5}, 6));
-        assertFalse(SuffixArray.isPermutation(new int[]{0, 0, 2, 3, 4, 5}, 6));
+    public void test2() throws IOException {
+        OutputStream os = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(os));
+        SuffixArray.printV(new int[]{1, 2, 3}, "fuck");
+        os.flush();
+        Assert.assertEquals("fuck:1 2 3 " + System.lineSeparator(), os.toString());
     }
 
-    @Test
-    public void testSleq() {
-        assertTrue(SuffixArray.sleq(new int[]{1, 2, 3}, 0, new int[]{2, 3, 4}, 0));
-        assertFalse(SuffixArray.sleq(new int[]{2, 3, 4}, 0, new int[]{1, 2, 3}, 0));
-        assertFalse(SuffixArray.sleq(new int[]{2, 3, 4}, 0, new int[]{2, 2, 3}, 0));
-    }
+    static class SuffixArray2 extends SuffixArray {
 
-    @Test
-    public void testSorted() {
-        assertTrue(SuffixArray.isSorted(new int[]{0, 1, 2}, new int[]{1, 2, 3}, 3));
-        assertFalse(SuffixArray.isSorted(new int[]{0, 1, 2}, new int[]{1, 2, 1}, 3));
-    }
-
-    @Test
-    public void testComputeLCP() {
-        assertEquals(SuffixArray2.computeLCP("G*&&Nb4nr7", "*M#7nnbg"), SuffixArray.computeLCP("G*&&Nb4nr7", "*M#7nnbg"));
-    }
-
-    private static class SuffixArray2 {
+        /*
+         * Create the LCP array from the suffix array
+         * @param s the input array populated from 0..N-1, with available pos N
+         * @param sa the already-computed suffix array 0..N-1
+         * @param LCP the resulting LCP array 0..N-1
+         */
         public static void makeLCPArray(int[] s, int[] sa, int[] LCP) {
             int N = sa.length;
             int[] rank = new int[N];
@@ -111,6 +90,11 @@ public class SuffixArrayTest {
                 }
         }
 
+        /*
+         * Fill in the suffix array information for String str
+         * @param str the input String
+         * @param sa existing array to place the suffix array
+         */
         public static void createSuffixArray(String str, int[] sa, int[] LCP) {
             int N = str.length();
 
@@ -128,6 +112,9 @@ public class SuffixArrayTest {
             makeLCPArray(s, sa, LCP);
         }
 
+
+        // find the suffix array SA of s[0..n-1] in {1..K}^n
+        // require s[n]=s[n+1]=s[n+2]=0, n>=2
         public static void makeSuffixArray(int[] s, int[] SA, int n, int K) {
             int n0 = (n + 2) / 3;
             int n1 = (n + 1) / 3;
@@ -154,6 +141,11 @@ public class SuffixArrayTest {
             merge(s, s12, SA, SA0, SA12, n, n0, n12, t);
         }
 
+        // Assigns the new supercharacter names.
+        // At end of routine, SA will have indices into s, in sorted order
+        // and s12 will have new character names
+        // Returns the number of names assigned; note that if
+        // this value is the same as n12, then SA is a suffix array for s12.
         private static int assignNames(int[] s, int[] s12, int[] SA12,
                                        int n0, int n12, int K) {
             // radix sort the new character trios
@@ -183,6 +175,10 @@ public class SuffixArrayTest {
             return name;
         }
 
+
+        // stably sort in[0..n-1] with indices into s that has keys in 0..K
+        // into out[0..n-1]; sort is relative to offset into s
+        // uses counting radix sort
         private static void radixPass(int[] in, int[] out, int[] s, int offset,
                                       int n, int K) {
             int[] count = new int[K + 2];            // counter array
@@ -197,17 +193,22 @@ public class SuffixArrayTest {
                 out[count[s[in[i] + offset]]++] = in[i];      // sort
         }
 
+        // stably sort in[0..n-1] with indices into s that has keys in 0..K
+        // into out[0..n-1]
+        // uses counting radix sort
         private static void radixPass(int[] in, int[] out, int[] s, int n, int K) {
             radixPass(in, out, s, 0, n, K);
         }
 
+
+        // Compute the suffix array for s12, placing result into SA12
         private static void computeS12(int[] s12, int[] SA12, int n12, int K12) {
             if (K12 == n12) // if unique names, don't need recursion
                 for (int i = 0; i < n12; i++)
                     SA12[s12[i] - 1] = i;
             else {
                 makeSuffixArray(s12, SA12, n12, K12);
-                // store unique names in s12 using the suffix array 
+                // store unique names in s12 using the suffix array
                 for (int i = 0; i < n12; i++)
                     s12[SA12[i]] = i + 1;
             }
@@ -222,6 +223,8 @@ public class SuffixArrayTest {
             radixPass(s0, SA0, s, n0, K);
         }
 
+
+        // merge sorted SA0 suffixes and sorted SA12 suffixes
         private static void merge(int[] s, int[] s12,
                                   int[] SA, int[] SA0, int[] SA12,
                                   int n, int n0, int n12, int t) {
@@ -271,6 +274,52 @@ public class SuffixArrayTest {
                         s[j], s[j + 1], s12[j / 3 + n0]);
         }
 
+        public static void printV(int[] a, String comment) {
+            System.out.print(comment + ":");
+            for (int x : a)
+                System.out.print(x + " ");
+
+            System.out.println();
+        }
+
+        public static boolean isPermutation(int[] SA, int n) {
+            boolean[] seen = new boolean[n];
+
+            for (int i = 0; i < n; i++)
+                seen[i] = false;
+
+            for (int i = 0; i < n; i++)
+                seen[SA[i]] = true;
+
+            for (int i = 0; i < n; i++)
+                if (!seen[i])
+                    return false;
+
+            return true;
+        }
+
+        public static boolean sleq(int[] s1, int start1, int[] s2, int start2) {
+            for (int i = start1, j = start2; ; i++, j++) {
+                if (s1[i] < s2[j])
+                    return true;
+
+                if (s1[i] > s2[j])
+                    return false;
+            }
+        }
+
+        // Check if SA is a sorted suffix array for s
+        public static boolean isSorted(int[] SA, int[] s, int n) {
+            for (int i = 0; i < n - 1; i++)
+                if (!sleq(s, SA[i], s, SA[i + 1]))
+                    return false;
+
+            return true;
+        }
+
+        /*
+         * Returns the LCP for any two strings
+         */
         public static int computeLCP(String s1, String s2) {
             int i = 0;
 
@@ -278,6 +327,33 @@ public class SuffixArrayTest {
                 i++;
 
             return i;
+        }
+
+        /*
+         * Fill in the suffix array and LCP information for String str
+         * @param str the input String
+         * @param SA existing array to place the suffix array
+         * @param LCP existing array to place the LCP information
+         * Note: Starting in Java 7, this will use quadratic space.
+         */
+        public static void createSuffixArraySlow(String str, int[] SA, int[] LCP) {
+            if (SA.length != str.length() || LCP.length != str.length())
+                throw new IllegalArgumentException();
+
+            int N = str.length();
+
+            String[] suffixes = new String[N];
+            for (int i = 0; i < N; i++)
+                suffixes[i] = str.substring(i);
+
+            Arrays.sort(suffixes);
+
+            for (int i = 0; i < N; i++)
+                SA[i] = N - suffixes[i].length();
+
+            LCP[0] = 0;
+            for (int i = 1; i < N; i++)
+                LCP[i] = computeLCP(suffixes[i - 1], suffixes[i]);
         }
     }
 }

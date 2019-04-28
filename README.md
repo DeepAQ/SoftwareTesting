@@ -1,6 +1,6 @@
 # SoftwareTesting
 
-2018 年及之前的[慕测平台](mooctest.net)测试试题代码。
+2018 年及之前的[慕测平台](http://www.mooctest.net)测试试题代码。
 
 仅供参考，请勿抄袭。
 
